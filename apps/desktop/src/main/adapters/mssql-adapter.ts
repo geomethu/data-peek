@@ -117,7 +117,10 @@ function bindParameter(request: sql.Request, paramName: string, value: unknown):
 /**
  * Create MSSQL connection config from our ConnectionConfig
  */
-function toMSSQLConfig(config: ConnectionConfig): sql.config {
+function toMSSQLConfig(
+  config: ConnectionConfig,
+  overrides?: { host: string; port: number }
+): sql.config {
   const mssqlOptions = config.mssqlOptions || {}
 
   // Handle authentication methods first to determine what options are needed
@@ -157,13 +160,15 @@ function toMSSQLConfig(config: ConnectionConfig): sql.config {
 
   // Build base config
   const sqlConfig: sql.config = {
-    server: config.host,
+    server: overrides?.host ?? config.host,
     database: config.database,
     options
   }
 
   // Include port if provided (optional in mssql config)
-  if (config.port) {
+  if (overrides?.port) {
+    sqlConfig.port = overrides.port
+  } else if (config.port) {
     sqlConfig.port = config.port
   }
 
@@ -221,10 +226,19 @@ export class MSSQLAdapter implements DatabaseAdapter {
     if (config.ssh) {
       tunnelSession = await createTunnel(config)
     }
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
-    await pool.close()
-    closeTunnel(tunnelSession)
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
+    const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
+    try {
+      await pool.connect()
+      await pool.close()
+    } catch (error) {
+      await pool.close().catch(() => {})
+      throw error
+    } finally {
+      closeTunnel(tunnelSession)
+    }
   }
 
   async query(config: ConnectionConfig, sqlQuery: string): Promise<AdapterQueryResult> {
@@ -232,10 +246,15 @@ export class MSSQLAdapter implements DatabaseAdapter {
     if (config.ssh) {
       tunnelSession = await createTunnel(config)
     }
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
+const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
+try {
+  await pool.connect()
 
     try {
+      await pool.connect()
       const result = await pool.request().query(sqlQuery)
       const rows = result.recordset as Record<string, unknown>[]
       const fields: QueryField[] = []
@@ -293,7 +312,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
 
       return { rows, fields, rowCount: result.rowsAffected[0] ?? rows.length }
     } finally {
-      await pool.close()
+      await pool.close().catch(() => {})
       closeTunnel(tunnelSession)
     }
   }
@@ -317,23 +336,26 @@ export class MSSQLAdapter implements DatabaseAdapter {
       tunnelSession = await createTunnel(config)
     }
 
-    if (collectTelemetry) {
-      telemetryCollector.endPhase(executionId, TELEMETRY_PHASES.TCP_HANDSHAKE)
-      telemetryCollector.startPhase(executionId, TELEMETRY_PHASES.DB_HANDSHAKE)
-    }
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
 
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
-
-    if (collectTelemetry) {
-      telemetryCollector.endPhase(executionId, TELEMETRY_PHASES.DB_HANDSHAKE)
-    }
-
+    const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
     const totalStart = Date.now()
     const results: StatementResult[] = []
     let totalRowCount = 0
 
     try {
+      if (collectTelemetry) {
+        telemetryCollector.endPhase(executionId, TELEMETRY_PHASES.TCP_HANDSHAKE)
+        telemetryCollector.startPhase(executionId, TELEMETRY_PHASES.DB_HANDSHAKE)
+      }
+
+      await pool.connect()
+
+      if (collectTelemetry) {
+        telemetryCollector.endPhase(executionId, TELEMETRY_PHASES.DB_HANDSHAKE)
+      }
       const statements = splitMssqlStatements(sqlQuery)
 
       for (let i = 0; i < statements.length; i++) {
@@ -493,7 +515,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
       if (options?.executionId) {
         unregisterQuery(options.executionId)
       }
-      await pool.close()
+      await pool.close().catch(() => {})
       closeTunnel(tunnelSession)
     }
   }
@@ -507,10 +529,13 @@ export class MSSQLAdapter implements DatabaseAdapter {
     if (config.ssh) {
       tunnelSession = await createTunnel(config)
     }
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
+    const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
 
     try {
+      await pool.connect()
       const request = pool.request()
       const hasMSSQLPlaceholders = /@p\d+/.test(sqlQuery)
 
@@ -529,7 +554,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
       const result = await request.query(sqlQuery)
       return { rowCount: result.rowsAffected[0] ?? null }
     } finally {
-      await pool.close()
+      await pool.close().catch(() => {})
       closeTunnel(tunnelSession)
     }
   }
@@ -542,11 +567,15 @@ export class MSSQLAdapter implements DatabaseAdapter {
     if (config.ssh) {
       tunnelSession = await createTunnel(config)
     }
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
-    const transaction = new sql.Transaction(pool)
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
+    const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
+    let transaction: sql.Transaction | null = null
 
     try {
+      await pool.connect()
+      transaction = new sql.Transaction(pool)
       await transaction.begin()
       const results: Array<{ rowCount: number | null }> = []
       let rowsAffected = 0
@@ -577,10 +606,10 @@ export class MSSQLAdapter implements DatabaseAdapter {
       await transaction.commit()
       return { rowsAffected, results }
     } catch (error) {
-      await transaction.rollback().catch(() => {})
+      if (transaction) await transaction.rollback().catch(() => {})
       throw error
     } finally {
-      await pool.close()
+      await pool.close().catch(() => {})
       closeTunnel(tunnelSession)
     }
   }
@@ -590,10 +619,13 @@ export class MSSQLAdapter implements DatabaseAdapter {
     if (config.ssh) {
       tunnelSession = await createTunnel(config)
     }
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
+    const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
 
     try {
+      await pool.connect()
       const schemaList = SYSTEM_SCHEMAS.map((s) => `'${s}'`).join(', ')
 
       const [schemasResult, tablesResult] = await Promise.all([
@@ -767,7 +799,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
 
       return Array.from(schemaMap.values())
     } finally {
-      await pool.close()
+      await pool.close().catch(() => {})
       closeTunnel(tunnelSession)
     }
   }
@@ -781,10 +813,13 @@ export class MSSQLAdapter implements DatabaseAdapter {
     if (config.ssh) {
       tunnelSession = await createTunnel(config)
     }
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
+    const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
 
     try {
+      await pool.connect()
       const start = Date.now()
 
       if (analyze) {
@@ -825,7 +860,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
         }
       }
     } finally {
-      await pool.close()
+      await pool.close().catch(() => {})
       closeTunnel(tunnelSession)
     }
   }
@@ -839,10 +874,13 @@ export class MSSQLAdapter implements DatabaseAdapter {
     if (config.ssh) {
       tunnelSession = await createTunnel(config)
     }
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
+    const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
 
     try {
+      await pool.connect()
       // Query columns with full metadata
       const columnsResult = await pool
         .request()
@@ -1060,7 +1098,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
         comment: tableCommentResult.recordset[0]?.comment || undefined
       }
     } finally {
-      await pool.close()
+      await pool.close().catch(() => {})
       closeTunnel(tunnelSession)
     }
   }
@@ -1076,10 +1114,13 @@ export class MSSQLAdapter implements DatabaseAdapter {
     if (config.ssh) {
       tunnelSession = await createTunnel(config)
     }
-    const pool = new sql.ConnectionPool(toMSSQLConfig(config))
-    await pool.connect()
+    const tunnelOverrides = tunnelSession
+      ? { host: tunnelSession.localHost, port: tunnelSession.localPort }
+      : undefined
+    const pool = new sql.ConnectionPool(toMSSQLConfig(config, tunnelOverrides))
 
     try {
+      await pool.connect()
       // Get user-defined types from sys.types
       const typesResult = await pool.request().query(`
         SELECT
@@ -1102,7 +1143,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
         type: 'composite' as const // Treat as composite for now
       }))
     } finally {
-      await pool.close()
+      await pool.close().catch(() => {})
       closeTunnel(tunnelSession)
     }
   }
