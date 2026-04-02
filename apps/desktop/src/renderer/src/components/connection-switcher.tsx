@@ -25,6 +25,30 @@ import { useConnectionStore, type Connection } from '@/stores'
 import { useNavigate } from '@tanstack/react-router'
 import { AddConnectionDialog } from './add-connection-dialog'
 import { DatabaseIcon } from './database-icons'
+import { resolveEnvironment } from '@/lib/environment'
+
+function EnvironmentBadge({
+  environment
+}: {
+  environment?: import('@shared/index').ConnectionEnvironment
+}) {
+  const resolved = resolveEnvironment(environment)
+  if (!resolved) return null
+  return (
+    <span
+      className="shrink-0 rounded px-1.5 py-px text-[0.625rem] font-semibold uppercase tracking-wide font-mono leading-none"
+      style={{
+        backgroundColor: `color-mix(in oklch, ${resolved.color} 15%, transparent)`,
+        borderWidth: '1px',
+        borderStyle: 'solid',
+        borderColor: `color-mix(in oklch, ${resolved.color} 30%, transparent)`,
+        color: resolved.color
+      }}
+    >
+      {resolved.label}
+    </span>
+  )
+}
 
 export function ConnectionSwitcher() {
   const navigate = useNavigate()
@@ -145,7 +169,16 @@ export function ConnectionSwitcher() {
 
   return (
     <SidebarMenu>
-      <SidebarMenuItem>
+      <SidebarMenuItem className="relative">
+        {(() => {
+          const activeEnv = resolveEnvironment(activeConnection?.environment)
+          return activeEnv ? (
+            <div
+              className="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-150"
+              style={{ backgroundColor: activeEnv.color }}
+            />
+          ) : null
+        })()}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton className="w-fit px-1.5">
@@ -164,6 +197,7 @@ export function ConnectionSwitcher() {
               <span className="truncate font-medium">
                 {activeConnection?.name || 'Select connection'}
               </span>
+              <EnvironmentBadge environment={activeConnection?.environment} />
               <ChevronDown className="opacity-50" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -196,6 +230,7 @@ export function ConnectionSwitcher() {
                 <div className="flex flex-1 min-w-0 flex-col gap-0.5">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="font-medium truncate">{connection.name}</span>
+                    <EnvironmentBadge environment={connection.environment} />
                   </div>
                   <span className="text-xs text-muted-foreground truncate">
                     {connection.host}:{connection.port}/{connection.database}
