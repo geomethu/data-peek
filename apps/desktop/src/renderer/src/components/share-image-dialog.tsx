@@ -30,15 +30,19 @@ type BackgroundStyle =
   | 'falcon'
   | 'sunset'
   | 'breeze'
+  | 'vercel'
+  | 'supabase'
+  | 'candy'
 
 export type ShareImageTheme = 'dark' | 'light'
+export type { BackgroundStyle }
 
 interface ShareImageDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   description?: string
-  children: (theme: ShareImageTheme) => ReactNode
+  children: (theme: ShareImageTheme, background: BackgroundStyle) => ReactNode
   filenamePrefix?: string
   header?: (theme: ShareImageTheme) => ReactNode
   extraOptions?: ReactNode
@@ -99,6 +103,16 @@ export function ShareImageDialog({
         return {
           background:
             'linear-gradient(140deg, oklch(0.55 0.18 340) 0%, oklch(0.45 0.18 290) 100%)'
+        }
+      case 'vercel':
+        return {
+          background: 'linear-gradient(140deg, #232323 0%, #1f1f1f 100%)'
+        }
+      case 'supabase':
+        return { background: '#121212' }
+      case 'candy':
+        return {
+          background: 'linear-gradient(140deg, #a58efb 0%, #e9bff8 100%)'
         }
     }
   }
@@ -235,7 +249,7 @@ export function ShareImageDialog({
                   className={cn('rounded-md', getContentPaddingClass(padding))}
                   style={getContentStyle(backgroundStyle)}
                 >
-                  {children(theme)}
+                  {children(theme, backgroundStyle)}
                 </div>
 
                 {showBranding && (
@@ -274,6 +288,9 @@ export function ShareImageDialog({
                     <SelectItem value="falcon">Falcon</SelectItem>
                     <SelectItem value="sunset">Sunset</SelectItem>
                     <SelectItem value="breeze">Breeze</SelectItem>
+                    <SelectItem value="vercel">Vercel</SelectItem>
+                    <SelectItem value="supabase">Supabase</SelectItem>
+                    <SelectItem value="candy">Candy</SelectItem>
                     <SelectItem value="solid-dark">Carbon</SelectItem>
                     <SelectItem value="solid-light">Light</SelectItem>
                   </SelectContent>

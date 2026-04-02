@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { ShareImageDialog, type ShareImageTheme } from '@/components/share-image-dialog'
+import {
+  ShareImageDialog,
+  type ShareImageTheme,
+  type BackgroundStyle
+} from '@/components/share-image-dialog'
 import { DatabaseIcon } from '@/components/database-icons'
 import type { DatabaseType } from '@shared/index'
 
@@ -225,7 +229,17 @@ function tokenizeSQL(sql: string): Token[] {
   return tokens
 }
 
-const SYNTAX_COLORS = {
+type SyntaxColorSet = {
+  keyword: string
+  function: string
+  string: string
+  number: string
+  comment: string
+  operator: string
+  default: string
+}
+
+const SYNTAX_COLORS: Record<string, SyntaxColorSet> = {
   dark: {
     keyword: 'oklch(0.7 0.15 250)',
     function: 'oklch(0.75 0.12 330)',
@@ -243,12 +257,54 @@ const SYNTAX_COLORS = {
     comment: 'oklch(0.6 0.02 250)',
     operator: 'oklch(0.45 0.12 290)',
     default: 'oklch(0.2 0 0)'
+  },
+  vercel: {
+    keyword: 'oklch(69.36% 0.2223 3.91)',
+    function: 'oklch(69.87% 0.2037 309.51)',
+    string: 'oklch(73.1% 0.2158 148.29)',
+    number: '#ffffff',
+    comment: 'hsla(0, 0%, 63%, 1)',
+    operator: 'oklch(71.7% 0.1648 250.79)',
+    default: 'hsla(0, 0%, 93%, 1)'
+  },
+  supabase: {
+    keyword: '#bda4ff',
+    function: '#3ecf8e',
+    string: '#ffcda1',
+    number: '#ededed',
+    comment: '#7e7e7e',
+    operator: '#bda4ff',
+    default: '#ffffff'
+  },
+  candy: {
+    keyword: 'oklch(0.7 0.18 290)',
+    function: 'oklch(0.75 0.15 330)',
+    string: 'oklch(0.8 0.12 85)',
+    number: 'oklch(0.85 0 0)',
+    comment: 'oklch(0.55 0.05 290)',
+    operator: 'oklch(0.7 0.1 250)',
+    default: 'oklch(0.95 0 0)'
   }
-} as const
+}
 
-function HighlightedSQL({ sql, theme }: { sql: string; theme: 'dark' | 'light' }) {
+function getSyntaxColors(theme: ShareImageTheme, background: BackgroundStyle): SyntaxColorSet {
+  if (background in SYNTAX_COLORS) {
+    return SYNTAX_COLORS[background]
+  }
+  return SYNTAX_COLORS[theme]
+}
+
+function HighlightedSQL({
+  sql,
+  theme,
+  background
+}: {
+  sql: string
+  theme: 'dark' | 'light'
+  background: BackgroundStyle
+}) {
   const tokens = tokenizeSQL(sql)
-  const colors = SYNTAX_COLORS[theme]
+  const colors = getSyntaxColors(theme, background)
 
   const getColor = (type: Token['type']) => {
     return colors[type as keyof typeof colors] ?? colors.default
@@ -394,7 +450,7 @@ export function ShareQueryDialog({
         </>
       }
     >
-      {(theme: ShareImageTheme) => (
+      {(theme: ShareImageTheme, background: BackgroundStyle) => (
         <div style={{ margin: '-1.5rem', overflow: 'hidden' }}>
           <WindowChrome
             theme={theme}
@@ -404,11 +460,11 @@ export function ShareQueryDialog({
           />
           <div className="p-5">
             {showLineNumbers ? (
-              <HighlightedSQL sql={query} theme={theme} />
+              <HighlightedSQL sql={query} theme={theme} background={background} />
             ) : (
               <code className="font-mono text-[13px] leading-[1.7] whitespace-pre-wrap break-words">
                 {tokenizeSQL(query).map((token, i) => {
-                  const colors = SYNTAX_COLORS[theme]
+                  const colors = getSyntaxColors(theme, background)
                   const color =
                     colors[token.type as keyof typeof colors] ?? colors.default
                   const isKeyword = token.type === 'keyword'
