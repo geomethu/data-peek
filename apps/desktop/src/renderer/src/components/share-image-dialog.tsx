@@ -26,6 +26,10 @@ type BackgroundStyle =
   | 'midnight'
   | 'solid-dark'
   | 'solid-light'
+  | 'raindrop'
+  | 'falcon'
+  | 'sunset'
+  | 'breeze'
 
 export type ShareImageTheme = 'dark' | 'light'
 
@@ -76,6 +80,26 @@ export function ShareImageDialog({
         return { background: 'oklch(0.13 0 0)' }
       case 'solid-light':
         return { background: 'oklch(0.96 0.005 250)' }
+      case 'raindrop':
+        return {
+          background:
+            'linear-gradient(140deg, oklch(0.65 0.12 240) 0%, oklch(0.35 0.12 260) 100%)'
+        }
+      case 'falcon':
+        return {
+          background:
+            'linear-gradient(140deg, oklch(0.8 0.06 210) 0%, oklch(0.3 0.04 280) 100%)'
+        }
+      case 'sunset':
+        return {
+          background:
+            'linear-gradient(140deg, oklch(0.8 0.14 85) 0%, oklch(0.6 0.18 30) 100%)'
+        }
+      case 'breeze':
+        return {
+          background:
+            'linear-gradient(140deg, oklch(0.55 0.18 340) 0%, oklch(0.45 0.18 290) 100%)'
+        }
     }
   }
 
@@ -114,7 +138,8 @@ export function ShareImageDialog({
     }
   }
 
-  const theme: ShareImageTheme = backgroundStyle === 'solid-light' ? 'light' : 'dark'
+  const theme: ShareImageTheme =
+    backgroundStyle === 'solid-light' || backgroundStyle === 'sunset' ? 'light' : 'dark'
 
   const generateImage = useCallback(async (): Promise<Blob | null> => {
     if (!renderRef.current) return null
@@ -245,6 +270,10 @@ export function ShareImageDialog({
                     <SelectItem value="brand-blue">Brand Blue</SelectItem>
                     <SelectItem value="brand-deep">Deep Blue</SelectItem>
                     <SelectItem value="midnight">Midnight</SelectItem>
+                    <SelectItem value="raindrop">Raindrop</SelectItem>
+                    <SelectItem value="falcon">Falcon</SelectItem>
+                    <SelectItem value="sunset">Sunset</SelectItem>
+                    <SelectItem value="breeze">Breeze</SelectItem>
                     <SelectItem value="solid-dark">Carbon</SelectItem>
                     <SelectItem value="solid-light">Light</SelectItem>
                   </SelectContent>
