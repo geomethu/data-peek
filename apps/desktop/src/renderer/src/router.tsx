@@ -11,6 +11,7 @@ import {
 import { useState, useEffect, useCallback, useMemo, Component, type ReactNode } from 'react'
 import { Moon, Sun, Monitor, Sparkles, Command, AlertTriangle } from 'lucide-react'
 import { useAutoUpdater } from '@/hooks/use-auto-updater'
+import { usePokemonTracker } from '@/hooks/use-pokemon-tracker'
 import { ThemeProvider, useTheme } from '@/components/theme-provider'
 import { CommandPalette } from '@/components/command-palette'
 import { SavedQueriesDialog } from '@/components/saved-queries-dialog'
@@ -29,6 +30,7 @@ import { LicenseSettingsModal } from '@/components/license-settings-modal'
 import { AIChatPanel, AISettingsModal } from '@/components/ai'
 import { SettingsModal } from '@/components/settings-modal'
 import { Notifications } from '@/components/notifications'
+import { PokemonBuddy } from '@/components/pokemon-buddy'
 import { useAIStore } from '@/stores/ai-store'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -327,11 +329,17 @@ function RootLayout() {
   // Initialize auto-updater notifications
   useAutoUpdater()
 
+  const pokemonBuddyEnabled = useSettingsStore((s) => s.pokemonBuddyEnabled)
+
+  // Track queries for Pokemon buddy analytics
+  usePokemonTracker()
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="data-peek-theme">
       <SidebarProvider>
         <LayoutContent />
         <Notifications />
+        {pokemonBuddyEnabled && <PokemonBuddy />}
       </SidebarProvider>
     </ThemeProvider>
   )
@@ -411,7 +419,11 @@ function SettingsPage() {
     hideQuickQueryPanel,
     setHideQuickQueryPanel,
     queryTimeoutMs,
-    setQueryTimeoutMs
+    setQueryTimeoutMs,
+    pokemonBuddyEnabled,
+    setPokemonBuddyEnabled,
+    jsonExpandDepth,
+    setJsonExpandDepth
   } = useSettingsStore()
 
   return (
@@ -422,7 +434,7 @@ function SettingsPage() {
         </Link>
         <h1 className="text-2xl font-semibold">Settings</h1>
       </div>
-      <div className="space-y-6 max-w-2xl">
+      <div className="space-y-6 max-w-2xl pb-10">
         {/* License */}
         <div className="rounded-lg border border-border/50 bg-card p-4">
           <h2 className="text-lg font-medium mb-2">License</h2>
@@ -490,6 +502,27 @@ function SettingsPage() {
               icon={Monitor}
               currentTheme={theme}
               onSelect={setTheme}
+            />
+          </div>
+        </div>
+
+        {/* Fun Features */}
+        <div className="rounded-lg border border-border/50 bg-card p-4">
+          <h2 className="text-lg font-medium mb-2">Fun Features</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Enable fun features to personalize your experience.
+          </p>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="pokemon-buddy">Pokemon Buddy</Label>
+              <p className="text-xs text-muted-foreground">
+                Show a friendly Pokemon buddy in the sidebar
+              </p>
+            </div>
+            <Switch
+              id="pokemon-buddy"
+              checked={pokemonBuddyEnabled}
+              onCheckedChange={setPokemonBuddyEnabled}
             />
           </div>
         </div>
@@ -630,7 +663,7 @@ function SettingsPage() {
           <p className="text-sm text-muted-foreground mb-4">
             Configure how JSON data is displayed in results.
           </p>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div className="space-y-0.5">
               <Label htmlFor="expand-json">Expand JSON by default</Label>
               <p className="text-xs text-muted-foreground">
@@ -641,6 +674,26 @@ function SettingsPage() {
               id="expand-json"
               checked={expandJsonByDefault}
               onCheckedChange={setExpandJsonByDefault}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="json-depth">Default JSON expansion depth</Label>
+              <p className="text-xs text-muted-foreground">
+                How many levels deep JSON should be expanded
+              </p>
+            </div>
+            <Input
+              id="json-depth"
+              type="number"
+              min={1}
+              max={10}
+              className="w-24"
+              value={jsonExpandDepth}
+              onChange={(e) => {
+                const val = parseInt(e.target.value)
+                if (!isNaN(val)) setJsonExpandDepth(val)
+              }}
             />
           </div>
         </div>

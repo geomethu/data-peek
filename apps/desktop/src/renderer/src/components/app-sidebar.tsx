@@ -9,6 +9,7 @@ import { ScheduledQueries } from '@/components/scheduled-queries'
 import { SchemaExplorer } from '@/components/schema-explorer'
 import { SidebarQuickQuery } from '@/components/sidebar-quick-query'
 import { Snippets } from '@/components/snippets'
+import { FunAnalytics } from '@/components/fun-analytics'
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +23,7 @@ import {
   SidebarSeparator
 } from '@/components/ui/sidebar'
 import { useConnectionStore, useTabStore } from '@/stores'
+import { useSettingsStore } from '@/stores/settings-store'
 import { cn } from '@/lib/utils'
 
 /**
@@ -41,6 +43,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const createPgNotificationsTab = useTabStore((s) => s.createPgNotificationsTab)
   const createHealthMonitorTab = useTabStore((s) => s.createHealthMonitorTab)
   const isPostgres = activeConnection?.dbType === 'postgresql'
+  const pokemonBuddyEnabled = useSettingsStore((s) => s.pokemonBuddyEnabled)
 
   const handleOpenNotifications = () => {
     if (activeConnectionId) {
@@ -107,6 +110,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarGroupContent>
               </SidebarGroup>
             )}
+          </>
+        )}
+
+        {pokemonBuddyEnabled && (
+          <>
+            <SidebarSeparator className="mx-3" />
+            <FunAnalytics />
           </>
         )}
 
