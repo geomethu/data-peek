@@ -67,7 +67,7 @@ function parsePostgresArray(value: unknown): string[] {
  *
  * @param overrides - Optional host/port overrides (e.g., from SSH tunnel)
  */
-function buildClientConfig(
+export function buildClientConfig(
   config: ConnectionConfig,
   overrides?: { host: string; port: number }
 ): ClientConfig {
