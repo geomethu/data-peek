@@ -1,16 +1,17 @@
 'use client'
 
-import { Database, LayoutDashboard, Settings } from 'lucide-react'
+import { Activity, Database, LayoutDashboard, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { ConnectionSwitcher } from './connection-switcher'
-import { SchemaExplorer } from '@/components/schema-explorer/schema-explorer'
+import { SidebarContent } from './sidebar-content'
 
 const navItems = [
   { href: '/', icon: Database, label: 'Query' },
   { href: '/connections', icon: Database, label: 'Connections' },
   { href: '/dashboards', icon: LayoutDashboard, label: 'Dashboards' },
+  { href: '/health', icon: Activity, label: 'Health' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ]
 
@@ -26,7 +27,7 @@ export function AppSidebar() {
 
       <ConnectionSwitcher />
 
-      <SchemaExplorer />
+      <SidebarContent />
 
       <nav className="px-2 py-2 space-y-0.5">
         {navItems.map((item) => {
