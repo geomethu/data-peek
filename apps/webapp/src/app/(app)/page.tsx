@@ -94,6 +94,8 @@ export default function QueryPage() {
           durationMs={activeTab?.results?.durationMs ?? null}
           error={activeTab?.error ?? null}
           isExecuting={activeTab?.isExecuting ?? false}
+          rows={activeTab?.results?.rows}
+          fields={activeTab?.results?.fields}
         />
         {activeTab?.results && (
           <ResultsTable rows={activeTab.results.rows} fields={activeTab.results.fields} />
