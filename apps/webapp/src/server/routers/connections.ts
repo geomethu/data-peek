@@ -94,7 +94,7 @@ export const connectionsRouter = createRouter({
           authTag,
           updatedAt: new Date(),
         })
-        .where(eq(userConnections.id, id))
+        .where(and(eq(userConnections.id, id), eq(userConnections.customerId, ctx.customerId)))
         .returning({
           id: userConnections.id,
           name: userConnections.name,
@@ -120,7 +120,9 @@ export const connectionsRouter = createRouter({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Connection not found' })
       }
 
-      await ctx.db.delete(userConnections).where(eq(userConnections.id, input.id))
+      await ctx.db
+        .delete(userConnections)
+        .where(and(eq(userConnections.id, input.id), eq(userConnections.customerId, ctx.customerId)))
 
       return { success: true }
     }),
