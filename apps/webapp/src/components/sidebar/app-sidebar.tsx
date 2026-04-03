@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { ConnectionSwitcher } from './connection-switcher'
+import { SchemaExplorer } from '@/components/schema-explorer/schema-explorer'
 
 const navItems = [
   { href: '/', icon: Database, label: 'Query' },
@@ -25,7 +26,9 @@ export function AppSidebar() {
 
       <ConnectionSwitcher />
 
-      <nav className="flex-1 px-2 py-2 space-y-0.5">
+      <SchemaExplorer />
+
+      <nav className="px-2 py-2 space-y-0.5">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           return (
