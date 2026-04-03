@@ -1,0 +1,106 @@
+import { z } from 'zod'
+import { eq, and, desc } from 'drizzle-orm'
+import { TRPCError } from '@trpc/server'
+import { createRouter, protectedProcedure } from '../trpc'
+import { savedQueries } from '@/db/schema'
+
+export const savedQueriesRouter = createRouter({
+  list: protectedProcedure
+    .input(
+      z
+        .object({
+          connectionId: z.string().uuid().optional(),
+          search: z.string().optional(),
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const conditions = [eq(savedQueries.customerId, ctx.customerId)]
+      if (input?.connectionId) conditions.push(eq(savedQueries.connectionId, input.connectionId))
+
+      const results = await ctx.db.query.savedQueries.findMany({
+        where: and(...conditions),
+        orderBy: [desc(savedQueries.updatedAt)],
+      })
+
+      if (input?.search) {
+        const term = input.search.toLowerCase()
+        return results.filter(
+          (q) => q.name.toLowerCase().includes(term) || q.query.toLowerCase().includes(term)
+        )
+      }
+      return results
+    }),
+
+  create: protectedProcedure
+    .input(
+      z.object({
+        connectionId: z.string().uuid(),
+        name: z.string().min(1).max(200),
+        query: z.string().min(1),
+        description: z.string().optional(),
+        category: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [saved] = await ctx.db
+        .insert(savedQueries)
+        .values({
+          customerId: ctx.customerId,
+          ...input,
+        })
+        .returning()
+      return saved
+    }),
+
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string().min(1).max(200).optional(),
+        query: z.string().min(1).optional(),
+        description: z.string().optional(),
+        category: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...updates } = input
+      const existing = await ctx.db.query.savedQueries.findFirst({
+        where: and(eq(savedQueries.id, id), eq(savedQueries.customerId, ctx.customerId)),
+      })
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' })
+
+      const [updated] = await ctx.db
+        .update(savedQueries)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(and(eq(savedQueries.id, id), eq(savedQueries.customerId, ctx.customerId)))
+        .returning()
+      return updated
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .delete(savedQueries)
+        .where(and(eq(savedQueries.id, input.id), eq(savedQueries.customerId, ctx.customerId)))
+      return { success: true }
+    }),
+
+  incrementUsage: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db.query.savedQueries.findFirst({
+        where: and(eq(savedQueries.id, input.id), eq(savedQueries.customerId, ctx.customerId)),
+      })
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' })
+
+      await ctx.db
+        .update(savedQueries)
+        .set({ usageCount: (existing.usageCount ?? 0) + 1, updatedAt: new Date() })
+        .where(eq(savedQueries.id, input.id))
+      return { success: true }
+    }),
+})
