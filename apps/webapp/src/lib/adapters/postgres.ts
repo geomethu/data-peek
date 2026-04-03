@@ -14,6 +14,9 @@ import type {
   WebQueryResult,
   WebExplainResult,
   ConnectionCredentials,
+  ActiveQuery,
+  TableSizeEntry,
+  LockEntry,
 } from './types'
 
 export class PostgresWebAdapter implements WebDatabaseAdapter {
@@ -211,6 +214,145 @@ export class PostgresWebAdapter implements WebDatabaseAdapter {
       routinesResult.rows,
       paramsResult.rows
     )
+  }
+
+  async getActiveQueries(): Promise<ActiveQuery[]> {
+    if (!this.client) throw new Error('Not connected')
+    interface ActiveQueryRow {
+      pid: number
+      user: string | null
+      state: string | null
+      duration_ms: number | null
+      duration: string | null
+      query: string | null
+    }
+    const result = await this.client.query<ActiveQueryRow>(`
+      SELECT pid, usename as user, state,
+        EXTRACT(EPOCH FROM (now() - query_start))::int * 1000 as duration_ms,
+        now() - query_start as duration,
+        query
+      FROM pg_stat_activity
+      WHERE state != 'idle' AND pid != pg_backend_pid()
+      ORDER BY query_start ASC
+    `)
+    return result.rows.map((r) => ({
+      pid: r.pid,
+      user: r.user || '',
+      state: r.state || '',
+      duration: r.duration ? String(r.duration) : '0s',
+      durationMs: r.duration_ms || 0,
+      query: r.query || '',
+    }))
+  }
+
+  async getTableSizes(): Promise<{ dbSize: string; tables: TableSizeEntry[] }> {
+    if (!this.client) throw new Error('Not connected')
+    interface DbSizeRow {
+      total_size: string | null
+    }
+    interface TableSizeRow {
+      schema: string
+      table: string
+      rows: string | number
+      data_size: string
+      index_size: string
+      total_size: string
+      total_size_bytes: string | number
+    }
+    const [dbResult, tablesResult] = await Promise.all([
+      this.client.query<DbSizeRow>(
+        `SELECT pg_size_pretty(pg_database_size(current_database())) as total_size`
+      ),
+      this.client.query<TableSizeRow>(`
+        SELECT schemaname as schema, relname as table,
+          n_live_tup as rows,
+          pg_size_pretty(pg_relation_size(schemaname||'.'||relname)) as data_size,
+          pg_size_pretty(pg_indexes_size(schemaname||'.'||relname)) as index_size,
+          pg_size_pretty(pg_total_relation_size(schemaname||'.'||relname)) as total_size,
+          pg_total_relation_size(schemaname||'.'||relname) as total_size_bytes
+        FROM pg_stat_user_tables
+        ORDER BY pg_total_relation_size(schemaname||'.'||relname) DESC
+        LIMIT 50
+      `),
+    ])
+    return {
+      dbSize: dbResult.rows[0]?.total_size || '0 bytes',
+      tables: tablesResult.rows.map((r) => ({
+        schema: r.schema,
+        table: r.table,
+        rows: Number(r.rows) || 0,
+        dataSize: r.data_size,
+        indexSize: r.index_size,
+        totalSize: r.total_size,
+        totalSizeBytes: Number(r.total_size_bytes) || 0,
+      })),
+    }
+  }
+
+  async getCacheStats(): Promise<{ bufferHitRatio: number; indexHitRatio: number }> {
+    if (!this.client) throw new Error('Not connected')
+    interface CacheStatsRow {
+      buffer_hit_ratio: string | number | null
+      index_hit_ratio: string | number | null
+    }
+    const result = await this.client.query<CacheStatsRow>(`
+      SELECT
+        ROUND(COALESCE(SUM(heap_blks_hit)::numeric / NULLIF(SUM(heap_blks_hit) + SUM(heap_blks_read), 0) * 100, 0), 2) as buffer_hit_ratio,
+        ROUND(COALESCE(SUM(idx_blks_hit)::numeric / NULLIF(SUM(idx_blks_hit) + SUM(idx_blks_read), 0) * 100, 0), 2) as index_hit_ratio
+      FROM pg_statio_user_tables
+    `)
+    return {
+      bufferHitRatio: Number(result.rows[0]?.buffer_hit_ratio) || 0,
+      indexHitRatio: Number(result.rows[0]?.index_hit_ratio) || 0,
+    }
+  }
+
+  async getLocks(): Promise<LockEntry[]> {
+    if (!this.client) throw new Error('Not connected')
+    interface LockRow {
+      blocked_pid: number
+      blocked_user: string | null
+      blocking_pid: number
+      blocking_user: string | null
+      lock_type: string | null
+      relation: string | null
+      wait_duration: string | null
+      wait_duration_ms: number | null
+    }
+    const result = await this.client.query<LockRow>(`
+      SELECT
+        blocked.pid as blocked_pid,
+        blocked_activity.usename as blocked_user,
+        blocking.pid as blocking_pid,
+        blocking_activity.usename as blocking_user,
+        blocked.locktype as lock_type,
+        COALESCE(blocked.relation::regclass::text, '') as relation,
+        now() - blocked_activity.query_start as wait_duration,
+        EXTRACT(EPOCH FROM (now() - blocked_activity.query_start))::int * 1000 as wait_duration_ms
+      FROM pg_locks blocked
+      JOIN pg_stat_activity blocked_activity ON blocked.pid = blocked_activity.pid
+      JOIN pg_locks blocking ON blocking.locktype = blocked.locktype
+        AND blocking.database IS NOT DISTINCT FROM blocked.database
+        AND blocking.relation IS NOT DISTINCT FROM blocked.relation
+        AND blocking.page IS NOT DISTINCT FROM blocked.page
+        AND blocking.tuple IS NOT DISTINCT FROM blocked.tuple
+        AND blocking.virtualxid IS NOT DISTINCT FROM blocked.virtualxid
+        AND blocking.transactionid IS NOT DISTINCT FROM blocked.transactionid
+        AND blocking.pid != blocked.pid
+      JOIN pg_stat_activity blocking_activity ON blocking.pid = blocking_activity.pid
+      WHERE NOT blocked.granted AND blocking.granted
+      ORDER BY blocked_activity.query_start ASC
+    `)
+    return result.rows.map((r) => ({
+      blockedPid: r.blocked_pid,
+      blockedUser: r.blocked_user || '',
+      blockingPid: r.blocking_pid,
+      blockingUser: r.blocking_user || '',
+      lockType: r.lock_type || '',
+      relation: r.relation || '',
+      waitDuration: r.wait_duration ? String(r.wait_duration) : '0s',
+      waitDurationMs: r.wait_duration_ms || 0,
+    }))
   }
 }
 

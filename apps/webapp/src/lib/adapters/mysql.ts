@@ -13,6 +13,9 @@ import type {
   WebQueryResult,
   WebExplainResult,
   ConnectionCredentials,
+  ActiveQuery,
+  TableSizeEntry,
+  LockEntry,
 } from './types'
 
 const MYSQL_TYPE_MAP: Record<number, string> = {
@@ -196,6 +199,119 @@ export class MySQLWebAdapter implements WebDatabaseAdapter {
     const params = paramsRows as MySQLParameterRow[]
 
     return buildMySQLSchemaInfo(schemas, tables, columns, fks, routines, params)
+  }
+
+  async getActiveQueries(): Promise<ActiveQuery[]> {
+    if (!this.connection) throw new Error('Not connected')
+    interface ProcessListRow {
+      pid: number
+      user: string | null
+      state: string | null
+      duration_ms: number | null
+      duration_sec: number | null
+      query: string | null
+    }
+    const [rows] = await this.connection.query(`
+      SELECT ID as pid, USER as user, COMMAND as state,
+        TIME * 1000 as duration_ms, TIME as duration_sec, INFO as query
+      FROM information_schema.processlist
+      WHERE COMMAND != 'Sleep' AND ID != CONNECTION_ID()
+      ORDER BY TIME DESC
+    `)
+    return (rows as ProcessListRow[]).map((r) => ({
+      pid: r.pid,
+      user: r.user || '',
+      state: r.state || '',
+      duration: `${r.duration_sec}s`,
+      durationMs: r.duration_ms || 0,
+      query: r.query || '',
+    }))
+  }
+
+  async getTableSizes(): Promise<{ dbSize: string; tables: TableSizeEntry[] }> {
+    if (!this.connection) throw new Error('Not connected')
+    interface DbSizeRow {
+      total_size: string | null
+    }
+    interface MySQLTableSizeRow {
+      schema: string
+      table: string
+      rows: number | null
+      data_size: string
+      index_size: string
+      total_size: string
+      total_size_bytes: number | null
+    }
+    const [dbRows] = await this.connection.query(`
+      SELECT CONCAT(ROUND(SUM(data_length + index_length) / 1024 / 1024, 2), ' MB') as total_size
+      FROM information_schema.tables WHERE table_schema = DATABASE()
+    `)
+    const [tableRows] = await this.connection.query(`
+      SELECT table_schema as \`schema\`, table_name as \`table\`, table_rows as \`rows\`,
+        CONCAT(ROUND(data_length / 1024 / 1024, 2), ' MB') as data_size,
+        CONCAT(ROUND(index_length / 1024 / 1024, 2), ' MB') as index_size,
+        CONCAT(ROUND((data_length + index_length) / 1024 / 1024, 2), ' MB') as total_size,
+        (data_length + index_length) as total_size_bytes
+      FROM information_schema.tables
+      WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'
+      ORDER BY (data_length + index_length) DESC LIMIT 50
+    `)
+    return {
+      dbSize: (dbRows as DbSizeRow[])[0]?.total_size || '0 MB',
+      tables: (tableRows as MySQLTableSizeRow[]).map((r) => ({
+        schema: r.schema,
+        table: r.table,
+        rows: Number(r.rows) || 0,
+        dataSize: r.data_size,
+        indexSize: r.index_size,
+        totalSize: r.total_size,
+        totalSizeBytes: Number(r.total_size_bytes) || 0,
+      })),
+    }
+  }
+
+  async getCacheStats(): Promise<{ bufferHitRatio: number; indexHitRatio: number }> {
+    if (!this.connection) throw new Error('Not connected')
+    interface BufferHitRow {
+      buffer_hit_ratio: string | number | null
+    }
+    const [rows] = await this.connection.query(`
+      SELECT
+        ROUND((1 - (SELECT VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_reads') /
+          NULLIF((SELECT VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Innodb_buffer_pool_read_requests'), 0)) * 100, 2) as buffer_hit_ratio
+    `)
+    const ratio = Number((rows as BufferHitRow[])[0]?.buffer_hit_ratio) || 0
+    return { bufferHitRatio: ratio, indexHitRatio: ratio }
+  }
+
+  async getLocks(): Promise<LockEntry[]> {
+    if (!this.connection) throw new Error('Not connected')
+    interface LockWaitRow {
+      blocked_pid: string | null
+      blocked_thread: number | null
+      blocking_pid: string | null
+      blocking_thread: number | null
+      trx_wait_started: string | null
+      wait_seconds: number | null
+    }
+    const [rows] = await this.connection.query(`
+      SELECT r.trx_id as blocked_pid, r.trx_mysql_thread_id as blocked_thread,
+        b.trx_id as blocking_pid, b.trx_mysql_thread_id as blocking_thread,
+        r.trx_wait_started, TIMESTAMPDIFF(SECOND, r.trx_wait_started, NOW()) as wait_seconds
+      FROM information_schema.innodb_lock_waits w
+      JOIN information_schema.innodb_trx b ON b.trx_id = w.blocking_trx_id
+      JOIN information_schema.innodb_trx r ON r.trx_id = w.requesting_trx_id
+    `)
+    return (rows as LockWaitRow[]).map((r) => ({
+      blockedPid: r.blocked_thread || 0,
+      blockedUser: '',
+      blockingPid: r.blocking_thread || 0,
+      blockingUser: '',
+      lockType: 'row',
+      relation: '',
+      waitDuration: `${r.wait_seconds || 0}s`,
+      waitDurationMs: (r.wait_seconds || 0) * 1000,
+    }))
   }
 }
 
