@@ -32,6 +32,20 @@ export const customers = pgTable('customers', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
+export const licenses = pgTable('licenses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  licenseKey: text('license_key').notNull().unique(),
+  plan: text('plan').notNull().default('pro'),
+  status: text('status').notNull().default('active'),
+  maxActivations: integer('max_activations').notNull().default(3),
+  purchasedAt: timestamp('purchased_at', { withTimezone: true }).defaultNow().notNull(),
+  updatesUntil: timestamp('updates_until', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
 export const userConnections = pgTable(
   'user_connections',
   {
@@ -174,11 +188,19 @@ export const usageTracking = pgTable(
 )
 
 // Relations
+export const licensesRelations = relations(licenses, ({ one }) => ({
+  customer: one(customers, {
+    fields: [licenses.customerId],
+    references: [customers.id],
+  }),
+}))
+
 export const customersRelations = relations(customers, ({ many, one }) => ({
   connections: many(userConnections),
   savedQueries: many(savedQueries),
   queryHistory: many(queryHistory),
   dashboards: many(dashboards),
+  licenses: many(licenses),
   settings: one(userSettings),
 }))
 

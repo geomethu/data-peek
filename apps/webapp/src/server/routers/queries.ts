@@ -4,6 +4,7 @@ import { TRPCError } from '@trpc/server'
 import { createRouter, protectedProcedure } from '../trpc'
 import { userConnections, queryHistory } from '@/db/schema'
 import { getAdapter } from '@/lib/db-connect'
+import { checkQueryLimit, incrementUsage } from '../usage'
 
 export const queriesRouter = createRouter({
   execute: protectedProcedure
@@ -26,6 +27,14 @@ export const queriesRouter = createRouter({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Connection not found' })
       }
 
+      const limitCheck = await checkQueryLimit(ctx.customerId)
+      if (!limitCheck.allowed) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `Daily query limit reached (${limitCheck.used}/${limitCheck.limit}). Upgrade to Pro for unlimited queries.`,
+        })
+      }
+
       const adapter = await getAdapter(
         connection.id,
         connection.dbType,
@@ -46,6 +55,8 @@ export const queriesRouter = createRouter({
           durationMs: result.durationMs,
           rowCount: result.rowCount,
         })
+
+        await incrementUsage(ctx.customerId, 'queryCount')
 
         return result
       } catch (error) {
