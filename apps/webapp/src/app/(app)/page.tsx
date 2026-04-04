@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { trpc } from '@/lib/trpc-client'
 import { useConnectionStore } from '@/stores/connection-store'
 import { useQueryStore } from '@/stores/query-store'
@@ -18,14 +18,14 @@ export default function QueryPage() {
   const executeMutation = trpc.queries.execute.useMutation()
   const explainMutation = trpc.queries.explain.useMutation()
 
-  const handleExecute = useCallback(() => {
-    if (!activeConnectionId || !activeTab?.sql.trim()) return
+  const executeQuery = useCallback((sql: string) => {
+    if (!activeConnectionId || !sql.trim()) return
 
     setExecuting(activeTabId, true)
     setError(activeTabId, null)
 
     executeMutation.mutate(
-      { connectionId: activeConnectionId, sql: activeTab.sql },
+      { connectionId: activeConnectionId, sql },
       {
         onSuccess: (result) => {
           setResults(activeTabId, result)
@@ -37,7 +37,22 @@ export default function QueryPage() {
         },
       }
     )
-  }, [activeConnectionId, activeTab, activeTabId, executeMutation, setResults, setError, setExecuting])
+  }, [activeConnectionId, activeTabId, executeMutation, setResults, setError, setExecuting])
+
+  const handleExecute = useCallback(() => {
+    if (!activeTab?.sql.trim()) return
+    executeQuery(activeTab.sql)
+  }, [activeTab, executeQuery])
+
+  useEffect(() => {
+    function onExecuteEvent() {
+      const store = useQueryStore.getState()
+      const tab = store.tabs.find((t) => t.id === store.activeTabId)
+      if (tab?.sql.trim()) executeQuery(tab.sql)
+    }
+    window.addEventListener('datapeek:execute', onExecuteEvent)
+    return () => window.removeEventListener('datapeek:execute', onExecuteEvent)
+  }, [executeQuery])
 
   const handleExplain = useCallback(() => {
     if (!activeConnectionId || !activeTab?.sql.trim()) return
