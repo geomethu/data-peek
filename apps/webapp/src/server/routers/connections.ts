@@ -193,7 +193,6 @@ export const connectionsRouter = createRouter({
             database: credentials.database,
             user: credentials.user,
             password: credentials.password,
-            // TODO: support rejectUnauthorized: true for production databases
             ssl: connection.sslEnabled
               ? { rejectUnauthorized: false }
               : undefined,
@@ -202,7 +201,7 @@ export const connectionsRouter = createRouter({
           await client.connect();
           await client.query("SELECT 1");
           await client.end();
-        } else {
+        } else if (connection.dbType === "mysql") {
           const mysql = await import("mysql2/promise");
           const conn = await mysql.createConnection({
             host: credentials.host,

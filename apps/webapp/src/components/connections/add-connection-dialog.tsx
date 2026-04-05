@@ -28,17 +28,15 @@ function parseConnectionString(str: string): {
 
     const url = new URL(trimmed)
     const host = url.hostname
-    const port = url.port
-      ? parseInt(url.port)
-      : dbType === 'postgresql'
-        ? 5432
-        : 3306
+    const defaultPort = dbType === 'postgresql' ? 5432 : 3306
+    const port = url.port ? parseInt(url.port) : defaultPort
     const database = url.pathname.replace(/^\//, '')
     const user = decodeURIComponent(url.username)
     const password = decodeURIComponent(url.password)
     const sslEnabled =
       url.searchParams.get('sslmode') === 'require' ||
       url.searchParams.get('ssl') === 'true' ||
+      url.searchParams.get('encrypt') === 'true' ||
       url.searchParams.has('sslmode')
 
     if (!host || !database || !user) return null
@@ -85,7 +83,7 @@ export function AddConnectionDialog() {
   function handleUrlParse() {
     const parsed = parseConnectionString(connectionString)
     if (!parsed) {
-      setParseError('Invalid connection string. Expected: postgresql://user:pass@host:port/dbname')
+      setParseError('Invalid connection string. Expected: postgresql://user:pass@host:port/dbname or mysql://user:pass@host:3306/dbname')
       return
     }
     setParseError('')
@@ -182,7 +180,8 @@ export function AddConnectionDialog() {
               onChange={(e) => {
                 const dbType = e.target.value as 'postgresql' | 'mysql'
                 updateField('dbType', dbType)
-                updateField('port', dbType === 'postgresql' ? 5432 : 3306)
+                const defaultPort = dbType === 'postgresql' ? 5432 : 3306
+                updateField('port', defaultPort)
               }}
               className="mt-1 w-full rounded-md border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             >
