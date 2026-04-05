@@ -20,6 +20,10 @@ import type {
   ColumnStatsResult,
 } from './types'
 
+function escapeIdentifier(s: string): string {
+  return `"${s.replace(/"/g, '""')}"`
+}
+
 export class PostgresWebAdapter implements WebDatabaseAdapter {
   private client: pg.Client | null = null
 
@@ -34,6 +38,7 @@ export class PostgresWebAdapter implements WebDatabaseAdapter {
       connectionTimeoutMillis: 10000,
     })
     await this.client.connect()
+    await this.client.query('SET statement_timeout = 30000')
   }
 
   async disconnect(): Promise<void> {
@@ -43,35 +48,26 @@ export class PostgresWebAdapter implements WebDatabaseAdapter {
     }
   }
 
+  // timeoutMs is part of WebDatabaseAdapter interface but not used per-query;
+  // statement_timeout is set once at connect time to avoid concurrency issues
   async query(sql: string, timeoutMs = 30000): Promise<WebQueryResult> {
     if (!this.client) throw new Error('Not connected')
 
     const start = performance.now()
+    const result = await this.client.query(sql)
+    const durationMs = Math.round(performance.now() - start)
 
-    if (timeoutMs > 0) {
-      await this.client.query(`SET statement_timeout = ${timeoutMs}`)
-    }
+    const fields: QueryField[] = (result.fields || []).map((f) => ({
+      name: f.name,
+      dataType: resolvePostgresType(f.dataTypeID),
+      dataTypeID: f.dataTypeID,
+    }))
 
-    try {
-      const result = await this.client.query(sql)
-      const durationMs = Math.round(performance.now() - start)
-
-      const fields: QueryField[] = (result.fields || []).map((f) => ({
-        name: f.name,
-        dataType: resolvePostgresType(f.dataTypeID),
-        dataTypeID: f.dataTypeID,
-      }))
-
-      return {
-        rows: result.rows || [],
-        fields,
-        rowCount: result.rowCount ?? result.rows?.length ?? 0,
-        durationMs,
-      }
-    } finally {
-      if (timeoutMs > 0) {
-        await this.client.query('SET statement_timeout = 0').catch(() => {})
-      }
+    return {
+      rows: result.rows || [],
+      fields,
+      rowCount: result.rowCount ?? result.rows?.length ?? 0,
+      durationMs,
     }
   }
 
@@ -362,8 +358,8 @@ export class PostgresWebAdapter implements WebDatabaseAdapter {
     dataType: string
   ): Promise<ColumnStatsResult> {
     if (!this.client) throw new Error('Not connected')
-    const ident = `"${schema}"."${table}"`
-    const colIdent = `"${column}"`
+    const ident = `${escapeIdentifier(schema)}.${escapeIdentifier(table)}`
+    const colIdent = escapeIdentifier(column)
 
     const [countResult, statsResult, topResult] = await Promise.all([
       this.client.query(

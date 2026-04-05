@@ -19,6 +19,10 @@ import type {
   ColumnStatsResult,
 } from './types'
 
+function escapeIdentifier(s: string): string {
+  return `\`${s.replace(/`/g, '``')}\``
+}
+
 const MYSQL_TYPE_MAP: Record<number, string> = {
   0: 'decimal',
   1: 'tinyint',
@@ -321,8 +325,8 @@ export class MySQLWebAdapter implements WebDatabaseAdapter {
     dataType: string
   ): Promise<ColumnStatsResult> {
     if (!this.connection) throw new Error('Not connected')
-    const ident = `\`${schema}\`.\`${table}\``
-    const colIdent = `\`${column}\``
+    const ident = `${escapeIdentifier(schema)}.${escapeIdentifier(table)}`
+    const colIdent = escapeIdentifier(column)
 
     const [[countRows], [statsRows], [topRows]] = await Promise.all([
       this.connection.query(
