@@ -35,7 +35,36 @@ import { PgExportDialog } from '@/components/pg-export-dialog'
 import { PgImportDialog } from '@/components/pg-import-dialog'
 import { useImportStore, usePgDumpStore } from '@/stores'
 
-import { Badge, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Input, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem } from '@data-peek/ui'
+import {
+  Badge,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+  Input,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem
+} from '@data-peek/ui'
 
 import { useConnectionStore, useTabStore, notify } from '@/stores'
 import type { TableInfo, RoutineInfo, QueryResult as IpcQueryResult } from '@shared/index'
@@ -501,6 +530,13 @@ export function SchemaExplorer() {
   const [expandedTables, setExpandedTables] = React.useState<Set<string>>(new Set())
   const [expandedRoutines, setExpandedRoutines] = React.useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = React.useState('')
+
+  // Only animate stagger on schema data changes, not on every re-render
+  const animatedSchemasRef = React.useRef<typeof schemas>(null)
+  const shouldAnimateStagger = animatedSchemasRef.current !== schemas
+  React.useEffect(() => {
+    animatedSchemasRef.current = schemas
+  }, [schemas])
 
   // Schema focus - when set, only show this schema
   const [focusedSchema, setFocusedSchema] = React.useState<string | null>(null)
@@ -1140,7 +1176,7 @@ export function SchemaExplorer() {
                       // Non-virtualized rendering for smaller lists
                       return (
                         <SidebarMenuSub>
-                          {schema.tables.map((table) => {
+                          {schema.tables.map((table, tableIndex) => {
                             const tableKey = `${schema.name}.${table.name}`
                             return (
                               <Collapsible
@@ -1148,7 +1184,18 @@ export function SchemaExplorer() {
                                 open={expandedTables.has(tableKey)}
                                 onOpenChange={() => toggleTable(tableKey)}
                               >
-                                <SidebarMenuSubItem>
+                                <SidebarMenuSubItem
+                                  className={
+                                    shouldAnimateStagger ? 'sidebar-stagger-item' : undefined
+                                  }
+                                  style={
+                                    shouldAnimateStagger
+                                      ? ({
+                                          '--stagger-delay': `${Math.min(tableIndex * 20, 300)}ms`
+                                        } as React.CSSProperties)
+                                      : undefined
+                                  }
+                                >
                                   <div className="flex items-center group/table">
                                     <CollapsibleTrigger asChild>
                                       <Button
@@ -1351,15 +1398,27 @@ export function SchemaExplorer() {
                             )
                           })}
                           {/* Routines (Functions and Stored Procedures) */}
-                          {schema.routines?.map((routine) => {
+                          {schema.routines?.map((routine, routineIndex) => {
                             const routineKey = `${schema.name}.${routine.name}`
+                            const staggerBase = schema.tables.length
                             return (
                               <Collapsible
                                 key={routineKey}
                                 open={expandedRoutines.has(routineKey)}
                                 onOpenChange={() => toggleRoutine(routineKey)}
                               >
-                                <SidebarMenuSubItem>
+                                <SidebarMenuSubItem
+                                  className={
+                                    shouldAnimateStagger ? 'sidebar-stagger-item' : undefined
+                                  }
+                                  style={
+                                    shouldAnimateStagger
+                                      ? ({
+                                          '--stagger-delay': `${Math.min((staggerBase + routineIndex) * 20, 300)}ms`
+                                        } as React.CSSProperties)
+                                      : undefined
+                                  }
+                                >
                                   <div className="flex items-center group/routine">
                                     <CollapsibleTrigger asChild>
                                       <Button
