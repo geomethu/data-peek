@@ -1,0 +1,42 @@
+---
+title: Column Statistics
+description: View distribution and statistics for any result column
+---
+
+# Column Statistics
+
+Get instant statistical insights on any column in your query results without writing aggregate queries.
+
+## Opening the Stats Panel
+
+Click on any column header in the results table and select **Column Statistics** from the context menu, or click the chart icon on a column header.
+
+## Available Statistics
+
+### General
+
+- **Row count** - Total rows in the result
+- **Distinct count** - Number of unique values
+- **Null count** - Number of NULL values
+- **Null percentage** - Proportion of NULLs
+
+### Numeric Columns
+
+For numeric columns, additional stats are computed:
+
+- **Min** and **Max** values
+- **Mean** (average)
+- **Median** (50th percentile)
+- **Standard deviation**
+
+### Distribution
+
+A histogram shows the distribution of values across the column, giving you a visual sense of data shape.
+
+### Most Common Values
+
+A frequency chart displays the most common values with relative proportion bars, helping you spot dominant patterns at a glance.
+
+<Callout type="info">
+  Statistics are computed client-side on the fetched result set. For full-table statistics, ensure your query fetches all rows.
+</Callout>

@@ -1,0 +1,34 @@
+---
+title: Foreign Key Drill-Down
+description: Navigate between related rows by clicking foreign key values
+---
+
+# Foreign Key Drill-Down
+
+When your query results include foreign key columns, data-peek lets you click through to the referenced row instantly.
+
+## How It Works
+
+1. Foreign key cells are rendered as clickable links
+2. Click a FK value to open a side panel showing the referenced row from the parent table
+3. If that row also has FK columns, click again to drill deeper
+4. Panels stack side-by-side, showing the full relationship chain
+
+## Navigation
+
+### Side Panel
+
+Clicking a FK value opens the referenced row in a slide-out panel to the right. A breadcrumb trail at the top shows your navigation path.
+
+### Open in New Tab
+
+Hold `Cmd` (macOS) or `Ctrl` (Windows/Linux) while clicking a FK value to open the referenced row in a new tab instead of the side panel.
+
+## Requirements
+
+- The table must have foreign key constraints defined in the database
+- data-peek reads FK metadata from the schema to detect linkable columns
+
+<Callout type="tip">
+  This is especially useful for debugging relational data. Start from an order, click the customer_id to see the customer, then click their billing_address_id to see the address, all without writing a JOIN.
+</Callout>

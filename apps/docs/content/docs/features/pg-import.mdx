@@ -1,0 +1,29 @@
+---
+title: SQL Dump Import
+description: Import PostgreSQL SQL dump files
+---
+
+# SQL Dump Import
+
+Import `.sql` dump files into your PostgreSQL database directly from data-peek.
+
+## Starting an Import
+
+1. Open the import dialog from the sidebar or command palette
+2. Select a `.sql` dump file
+
+## Import Process
+
+data-peek streams the dump file and executes SQL statements one at a time:
+
+- **Progress** - Shows statements executed vs. total
+- **Error handling** - Choose between stopping on first error or continuing past failures
+- **Report** - After completion, see a summary of successful, skipped, and failed statements
+
+<Callout type="warning">
+  Large dump files may take time to import. The progress indicator helps you track the process.
+</Callout>
+
+<Callout type="info">
+  SQL dump import is currently available for PostgreSQL connections only.
+</Callout>

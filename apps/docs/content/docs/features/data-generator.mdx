@@ -1,0 +1,50 @@
+---
+title: Data Generator
+description: Generate realistic test data for any table
+---
+
+# Data Generator
+
+Generate realistic test data for your tables without leaving data-peek. Useful for development, testing, and demos.
+
+## Opening the Generator
+
+Right-click a table in the sidebar and select **Generate Data**, or open it from the command palette. It opens as a dedicated tab.
+
+## Configuring Columns
+
+For each column, choose a generator:
+
+| Generator | Output |
+|-----------|--------|
+| Auto-increment | Sequential integers |
+| UUID | Random UUIDs |
+| Faker: name | Realistic names |
+| Faker: email | Realistic emails |
+| Faker: phone | Phone numbers |
+| Random integer | Integer within a range |
+| Random float | Float within a range |
+| Random boolean | true/false |
+| Random date | Date within a range |
+| Random enum | Random pick from a list |
+| FK reference | Real values from a referenced table |
+| Fixed value | A constant value for all rows |
+| NULL | Always NULL |
+| SQL expression | Custom SQL (e.g. `NOW()`) |
+
+## Generation Options
+
+- **Row count** - Generate 1 to 10,000 rows
+- **Seed** - Set a seed for reproducible output
+
+## Preview Mode
+
+Click **Preview** to generate sample rows without inserting them. Review the data, adjust generators, then click **Generate** to insert.
+
+## Progress
+
+A progress indicator shows generation status. You can cancel at any time.
+
+<Callout type="tip">
+  Use the FK reference generator to maintain referential integrity. It pulls real foreign key values from the parent table.
+</Callout>

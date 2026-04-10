@@ -1,0 +1,59 @@
+---
+title: Data Masking
+description: Automatically mask sensitive columns like emails, passwords, and tokens
+---
+
+# Data Masking
+
+data-peek can automatically detect and mask sensitive data in query results, keeping PII and secrets hidden from casual view.
+
+## How It Works
+
+When enabled, data-peek scans column names against a set of patterns and replaces matching cell values with `••••••••`. The original data is still fetched but hidden in the UI.
+
+## Auto-Masking
+
+Auto-masking detects columns matching these default patterns:
+
+- **email** - Email addresses
+- **password** - Passwords and hashes
+- **ssn** - Social security numbers
+- **token** - API tokens and secrets
+- **phone** - Phone numbers
+- **address** - Physical addresses
+
+<Callout type="info">
+  Auto-masking matches column names, not data content. A column called `description` containing an email won't be masked automatically.
+</Callout>
+
+## Enabling Masking
+
+1. Click the **mask icon** in the results toolbar
+2. The masking toolbar appears above results
+3. Toggle **Auto-mask** to enable pattern-based detection
+4. Masked columns show a count badge
+
+## Manual Masking
+
+You can manually mask or unmask any column:
+
+1. Open the masking toolbar
+2. Click the toggle next to any column name
+3. The column values are replaced with mask characters
+
+## Peeking at Masked Values
+
+Enable **Hover with Alt to peek** in the masking toolbar. Then hold `Alt` while hovering over a masked cell to temporarily reveal its value.
+
+## Custom Mask Rules
+
+Add your own patterns:
+
+1. Open the masking toolbar
+2. Click **Add Rule**
+3. Enter a regex pattern that matches column names to mask
+4. The pattern is saved per-tab
+
+## Unmask All
+
+Click the badge showing the masked column count, then click **Unmask All** to reveal all columns at once.

@@ -1,0 +1,69 @@
+---
+title: Dashboard Builder
+description: Build query-powered dashboards with charts, KPIs, and tables
+---
+
+# Dashboard Builder
+
+Create custom dashboards powered by live SQL queries. Visualize data with charts, KPIs, and tables in a drag-and-drop layout.
+
+## Creating a Dashboard
+
+1. Open the command palette (`Cmd+K`) and select **New Dashboard**
+2. Give it a name
+3. Click **Add Widget** to start building
+
+## Widget Types
+
+### Chart
+
+Visualize query results as:
+- **Bar chart** - Compare values across categories
+- **Line chart** - Show trends over time
+- **Area chart** - Line chart with filled area
+- **Pie chart** - Show proportions
+
+Each chart widget has its own SQL query editor. Write a query that returns the data shape your chart type expects.
+
+### KPI
+
+Display a single value with:
+- Large number display
+- Trend indicator (up/down arrow with percentage)
+- Custom label
+
+### Table
+
+A paginated data grid showing query results directly, for when you need the raw numbers alongside visual widgets.
+
+## Layout
+
+### Drag and Drop
+
+Widgets can be freely positioned by dragging. Resize by dragging the bottom-right corner.
+
+### Edit Mode
+
+Press `E` or click the edit button to enter edit mode where you can rearrange, resize, and configure widgets. Press `Escape` to exit.
+
+## AI Widget Suggestions
+
+When adding a widget, data-peek can analyze your query results and suggest appropriate chart types and configurations automatically.
+
+## Auto-Refresh
+
+Set a refresh interval per dashboard to keep data current. Choose a cron schedule or refresh manually with `R`.
+
+## Organization
+
+- **Tags** - Add tags to dashboards for filtering
+- **Duplicate** - Copy an entire dashboard as a starting point
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `R` | Refresh dashboard |
+| `E` | Toggle edit mode |
+| `N` or `A` | Add widget |
+| `Escape` | Exit edit mode |

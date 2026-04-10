@@ -1,0 +1,51 @@
+---
+title: Performance Analysis
+description: Automatic query performance analysis with actionable recommendations
+---
+
+# Performance Analysis
+
+After executing a query, data-peek automatically analyzes the execution plan and flags potential performance issues.
+
+## How It Works
+
+A performance indicator panel appears below query results when issues are detected. Each issue has a severity level:
+
+| Severity | Meaning |
+|----------|---------|
+| Critical | Likely to cause problems at scale |
+| Warning | May impact performance |
+| Info | Optimization opportunity |
+
+## Detected Issues
+
+### Missing Indexes
+
+Identifies columns used in WHERE, JOIN, or ORDER BY that lack indexes.
+
+### Sequential Scans on Large Tables
+
+Flags queries that perform full table scans on tables above a size threshold.
+
+### N+1 Query Patterns
+
+Detects when the same query pattern is executed repeatedly with different parameters, suggesting a JOIN or batch query instead.
+
+## Recommendations
+
+Each issue includes a specific recommendation, such as:
+- Suggested index creation SQL
+- Query rewrite suggestions
+- Batch query alternatives
+
+## Reanalyze
+
+Click **Reanalyze** after making changes (like adding an index) to re-evaluate the query.
+
+## Filtering
+
+Filter issues by severity badge to focus on critical problems first.
+
+<Callout type="info">
+  Performance analysis uses the query's EXPLAIN plan. It works best with PostgreSQL, which provides the most detailed execution plans.
+</Callout>

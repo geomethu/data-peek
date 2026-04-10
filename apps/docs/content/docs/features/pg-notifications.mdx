@@ -1,0 +1,46 @@
+---
+title: PostgreSQL LISTEN/NOTIFY
+description: Subscribe to PostgreSQL notification channels in real time
+---
+
+# PostgreSQL LISTEN/NOTIFY
+
+Monitor PostgreSQL pub/sub channels directly in data-peek with a live event stream.
+
+## Opening the Panel
+
+Open the **Notifications** panel from the sidebar. It opens as a dedicated tab.
+
+## Subscribing to Channels
+
+1. Type a channel name in the input field
+2. Click **Subscribe** or press Enter
+3. You can subscribe to multiple channels simultaneously
+
+## Viewing Events
+
+Events appear in real time as they arrive:
+
+- **Timestamp** with millisecond precision
+- **Channel** name
+- **Payload** content
+- JSON payloads are automatically pretty-printed
+
+## Sending Notifications
+
+Send a `NOTIFY` message from within the panel:
+
+1. Enter the channel name
+2. Enter the payload (optional)
+3. Click **Send**
+
+This is useful for testing notification consumers.
+
+## Actions
+
+- **Copy** - Copy a notification payload to clipboard
+- **Clear All** - Remove all received events from the display
+
+<Callout type="info">
+  This feature is PostgreSQL-only, as LISTEN/NOTIFY is a PostgreSQL-specific feature.
+</Callout>

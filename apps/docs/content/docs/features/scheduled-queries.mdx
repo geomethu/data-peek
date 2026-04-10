@@ -1,0 +1,54 @@
+---
+title: Scheduled Queries
+description: Run SQL queries automatically on a cron schedule
+---
+
+# Scheduled Queries
+
+Schedule queries to run automatically at recurring intervals. Useful for monitoring, periodic data checks, or generating recurring reports.
+
+## Creating a Schedule
+
+1. Open the **Scheduled Queries** dialog from the sidebar
+2. Click **New Schedule**
+3. Configure the schedule:
+   - **Name** - A descriptive label
+   - **Connection** - Which database to run against
+   - **SQL** - The query to execute
+   - **Schedule** - Choose a preset or enter a custom cron expression
+
+### Schedule Presets
+
+| Preset | Cron |
+|--------|------|
+| Every minute | `* * * * *` |
+| Every 5 minutes | `*/5 * * * *` |
+| Every hour | `0 * * * *` |
+| Every day at midnight | `0 0 * * *` |
+| Custom | Any valid cron expression |
+
+## Managing Schedules
+
+### Pause / Resume
+
+Click the pause button to temporarily stop a schedule without deleting it. Click again to resume.
+
+### Run Now
+
+Trigger an immediate execution outside the schedule.
+
+### View Run History
+
+Click a schedule to see all past runs with:
+- Execution timestamp
+- Duration
+- Row count or error message
+- Success/failure status
+
+## Notifications
+
+When a scheduled query completes, data-peek sends a desktop notification with the result summary.
+
+<Callout type="warning">
+  Scheduled queries only run while data-peek is open. They do not run in the background after quitting the app.
+</Callout>

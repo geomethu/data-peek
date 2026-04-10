@@ -1,0 +1,40 @@
+---
+title: CSV Import
+description: Import CSV files into database tables
+---
+
+# CSV Import
+
+Import data from CSV files directly into your database tables.
+
+## Starting an Import
+
+1. Open the CSV Import dialog from the sidebar or command palette
+2. Drag and drop a `.csv` file, or click to browse
+
+## Configuration
+
+### Column Mapping
+
+data-peek auto-detects CSV headers and attempts to match them to existing table columns. You can:
+
+- Map CSV columns to different table columns
+- Skip columns you don't want to import
+- Create a new table from the CSV structure
+
+### Import Options
+
+| Option | Description |
+|--------|-------------|
+| **Target table** | Existing table or create new |
+| **Batch size** | Rows per INSERT batch (100, 500, 1000, 5000) |
+| **Null handling** | How to treat empty values |
+| **Conflict handling** | Skip or update on primary key conflict |
+
+## Import Progress
+
+A progress bar shows the import status. Large files are imported in batches to avoid timeouts.
+
+## Supported Databases
+
+CSV import works with PostgreSQL and MySQL connections.

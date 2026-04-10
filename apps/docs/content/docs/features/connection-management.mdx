@@ -1,0 +1,70 @@
+---
+title: Connection Management
+description: Manage database connections with environments, groups, and quick switching
+---
+
+# Connection Management
+
+data-peek supports managing multiple database connections with visual organization and fast switching.
+
+## Adding a Connection
+
+1. Click the **+** button in the sidebar or use the Connection Switcher (`Cmd+P`)
+2. Fill in the connection details:
+   - **Name** - A friendly label
+   - **Type** - PostgreSQL, MySQL, or Microsoft SQL Server
+   - **Host, Port, Database, Username, Password**
+3. Click **Test Connection** to verify, then **Save**
+
+### Connection String Parsing
+
+Paste a full connection URL to auto-populate all fields:
+
+```
+postgresql://user:password@host:5432/mydb
+mysql://user:password@host:3306/mydb
+```
+
+## Environment Labels
+
+Tag connections with an environment to prevent accidental production changes:
+
+| Environment | Color |
+|-------------|-------|
+| Production | Red |
+| Staging | Yellow |
+| Development | Green |
+| Custom | Any color |
+
+Environment badges appear next to connection names throughout the app, giving a constant visual cue of which environment you're connected to.
+
+## Connection Groups
+
+Assign a group name (e.g. "Team A", "Project X") when creating or editing a connection. Grouped connections appear under folder headers in the Connection Picker.
+
+## Switching Connections
+
+### Connection Switcher
+
+Press `Cmd+P` (macOS) or `Ctrl+P` (Windows/Linux) to open the connection switcher. Type to filter, then press Enter to connect.
+
+### Keyboard Shortcuts
+
+Use `Cmd+Shift+1` through `Cmd+Shift+9` to jump directly to a connection by position.
+
+### Sidebar
+
+Click the connection name in the sidebar header to open the dropdown, then select a different connection.
+
+## Duplicating a Connection
+
+In the connection switcher dropdown, click the **duplicate icon** next to any connection to create a copy with all the same settings.
+
+## SSL Configuration
+
+Toggle **Use SSL** in the connection form to connect over TLS. Advanced options include:
+- **Reject Unauthorized** - Whether to reject self-signed certificates
+
+## Cross-Window Sync
+
+Adding, editing, or deleting a connection in one window automatically updates all other open data-peek windows.

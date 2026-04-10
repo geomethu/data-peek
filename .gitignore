@@ -4,6 +4,7 @@ out/
 
 # Business documentation (contains sensitive info)
 /docs/
+apps/docs/content/docs/marketing/
 
 # OS files
 .DS_Store

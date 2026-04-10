@@ -1,0 +1,54 @@
+---
+title: SQL Snippets
+description: Reusable SQL templates with autocomplete trigger support
+---
+
+# SQL Snippets
+
+Snippets are reusable SQL templates that save you from typing common patterns repeatedly.
+
+## Built-In Snippets
+
+data-peek ships with snippets for common SQL operations:
+
+| Category | Examples |
+|----------|----------|
+| SELECT | Basic select, select with join, select distinct |
+| INSERT | Single insert, bulk insert |
+| UPDATE | Simple update, conditional update |
+| DELETE | Delete with condition |
+| DDL | Create table, alter table, create index |
+| Aggregates | Group by, having, window functions |
+| Joins | Inner join, left join, full outer join |
+
+## Using Snippets
+
+### From the Snippets Dialog
+
+1. Open **Snippets** from the sidebar or command palette
+2. Browse or search for a snippet
+3. Click **Insert** to paste into the active editor, or **Copy** to clipboard
+
+### From Autocomplete
+
+Custom snippets can define a **trigger prefix**. Type the prefix in the editor and select the snippet from autocomplete suggestions.
+
+## Custom Snippets
+
+### Creating a Snippet
+
+1. Open the Snippets dialog
+2. Click **New Snippet**
+3. Enter:
+   - **Name** - Descriptive label
+   - **Category** - For organization
+   - **Trigger** - Optional prefix for autocomplete (e.g. `sel` triggers a SELECT template)
+   - **SQL** - The snippet body
+
+### Editing and Deleting
+
+Custom snippets can be edited or deleted from the Snippets dialog. Built-in snippets are read-only.
+
+<Callout type="tip">
+  Use snippets with placeholder values like `table_name` or `column_name` that you replace after inserting.
+</Callout>
