@@ -125,8 +125,13 @@ function MaskedEditCell({
 }) {
   const [peeking, setPeeking] = React.useState(false)
 
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    if (hoverToPeek && e.altKey) setPeeking(true)
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!hoverToPeek) return
+    if (e.altKey) {
+      if (!peeking) setPeeking(true)
+    } else if (peeking) {
+      setPeeking(false)
+    }
   }
 
   const handleMouseLeave = () => setPeeking(false)
@@ -134,9 +139,10 @@ function MaskedEditCell({
   return (
     <span
       style={peeking ? undefined : { filter: 'blur(5px)', userSelect: 'none' }}
-      onMouseEnter={handleMouseEnter}
+      onMouseEnter={handleMouseMove}
+      onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="inline-block select-none pointer-events-none"
+      className="inline-block select-none"
     >
       {children}
     </span>
