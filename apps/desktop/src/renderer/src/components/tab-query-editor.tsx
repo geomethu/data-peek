@@ -1092,7 +1092,7 @@ export function TabQueryEditor({ tabId }: TabQueryEditorProps) {
     }
   }, [handleRunQuery, tab, tabConnection])
 
-  if (!tab) {
+  if (!tab || tab.type === 'notebook') {
     return null
   }
 

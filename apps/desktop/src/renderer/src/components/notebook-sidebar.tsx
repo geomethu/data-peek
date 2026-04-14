@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { BookOpen, ChevronRight, Plus, MoreHorizontal, Trash2, FolderOpen } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { BookOpen, ChevronRight, Plus, MoreHorizontal, Trash2, FolderOpen, Upload } from 'lucide-react'
 
 import {
   Collapsible,
@@ -23,6 +23,7 @@ import {
 
 import { useNotebookStore } from '@/stores/notebook-store'
 import { useConnectionStore, useTabStore, notify } from '@/stores'
+import { parseDpnb } from './notebook-export'
 import type { Notebook } from '@shared/index'
 
 export function NotebookSidebar() {
@@ -38,6 +39,7 @@ export function NotebookSidebar() {
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!isInitialized) {
@@ -63,6 +65,59 @@ export function NotebookSidebar() {
   const handleDelete = async (nb: Notebook) => {
     await deleteNotebook(nb.id)
     notify.success('Notebook deleted', `"${nb.title}" was removed.`)
+  }
+
+  const handleImportClick = () => {
+    if (!activeConnectionId) {
+      notify.error('No connection', 'Connect to a database before importing a notebook.')
+      return
+    }
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !activeConnectionId) return
+
+    try {
+      const text = await file.text()
+      const parsed = parseDpnb(text)
+      if (!parsed) {
+        notify.error('Invalid file', 'The file is not a valid .dpnb notebook.')
+        return
+      }
+
+      const nb = await createNotebook({
+        title: parsed.title,
+        connectionId: activeConnectionId,
+        folder: parsed.folder
+      })
+      if (!nb) {
+        notify.error('Import failed', 'Could not create the notebook.')
+        return
+      }
+
+      for (let i = 0; i < parsed.cells.length; i++) {
+        const cell = parsed.cells[i]
+        const addResult = await window.api.notebooks.addCell(nb.id, {
+          type: cell.type,
+          content: cell.content,
+          order: i
+        })
+        if (!addResult.success || !addResult.data) continue
+        if (cell.pinnedResult) {
+          await window.api.notebooks.updateCell(addResult.data.id, {
+            pinnedResult: cell.pinnedResult
+          })
+        }
+      }
+
+      createNotebookTab(nb.connectionId, nb.id, nb.title)
+      notify.success('Notebook imported', `"${parsed.title}" is ready.`)
+    } catch (err) {
+      notify.error('Import failed', err instanceof Error ? err.message : 'Unknown error')
+    }
   }
 
   const toggleFolder = (folder: string) => {
@@ -130,15 +185,33 @@ export function NotebookSidebar() {
             />
             <span>Notebooks</span>
           </CollapsibleTrigger>
-          <SidebarGroupAction
-            onClick={(e) => {
-              e.stopPropagation()
-              handleCreate()
-            }}
-            title="New notebook"
-          >
-            <Plus className="size-3.5" />
-          </SidebarGroupAction>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarGroupAction
+                onClick={(e) => e.stopPropagation()}
+                title="New or import notebook"
+              >
+                <Plus className="size-3.5" />
+              </SidebarGroupAction>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={handleCreate}>
+                <Plus className="text-muted-foreground" />
+                <span>New notebook</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleImportClick}>
+                <Upload className="text-muted-foreground" />
+                <span>Import .dpnb…</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".dpnb,application/json"
+            onChange={handleFileSelected}
+            style={{ display: 'none' }}
+          />
         </SidebarGroupLabel>
         <CollapsibleContent>
           <SidebarGroupContent>
