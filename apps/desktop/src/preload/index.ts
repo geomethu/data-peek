@@ -63,7 +63,14 @@ import type {
   PgExportResult,
   PgImportOptions,
   PgImportProgress,
-  PgImportResult
+  PgImportResult,
+  Notebook,
+  NotebookWithCells,
+  NotebookCell,
+  CreateNotebookInput,
+  UpdateNotebookInput,
+  AddCellInput,
+  UpdateCellInput
 } from '@shared/index'
 
 // Re-export AI types for renderer consumers
@@ -310,6 +317,27 @@ const api = {
       ipcRenderer.invoke('snippets:update', { id, updates }),
     delete: (id: string): Promise<IpcResponse<void>> => ipcRenderer.invoke('snippets:delete', id)
   },
+  // Notebooks management
+  notebooks: {
+    list: (): Promise<IpcResponse<Notebook[]>> => ipcRenderer.invoke('notebooks:list'),
+    get: (id: string): Promise<IpcResponse<NotebookWithCells>> =>
+      ipcRenderer.invoke('notebooks:get', id),
+    create: (input: CreateNotebookInput): Promise<IpcResponse<Notebook>> =>
+      ipcRenderer.invoke('notebooks:create', input),
+    update: (id: string, updates: UpdateNotebookInput): Promise<IpcResponse<Notebook>> =>
+      ipcRenderer.invoke('notebooks:update', { id, updates }),
+    delete: (id: string): Promise<IpcResponse<void>> => ipcRenderer.invoke('notebooks:delete', id),
+    duplicate: (id: string, connectionId: string): Promise<IpcResponse<Notebook>> =>
+      ipcRenderer.invoke('notebooks:duplicate', { id, connectionId }),
+    addCell: (notebookId: string, input: AddCellInput): Promise<IpcResponse<NotebookCell>> =>
+      ipcRenderer.invoke('notebooks:add-cell', { notebookId, input }),
+    updateCell: (cellId: string, updates: UpdateCellInput): Promise<IpcResponse<NotebookCell>> =>
+      ipcRenderer.invoke('notebooks:update-cell', { cellId, updates }),
+    deleteCell: (cellId: string): Promise<IpcResponse<void>> =>
+      ipcRenderer.invoke('notebooks:delete-cell', cellId),
+    reorderCells: (notebookId: string, cellIds: string[]): Promise<IpcResponse<void>> =>
+      ipcRenderer.invoke('notebooks:reorder-cells', { notebookId, cellIds })
+  },
   // Scheduled queries management
   scheduledQueries: {
     list: (): Promise<IpcResponse<ScheduledQuery[]>> =>
@@ -542,11 +570,8 @@ const api = {
       ipcRenderer.on('pg-notify:event', handler)
       return () => ipcRenderer.removeListener('pg-notify:event', handler)
     },
-    onStatus: (
-      callback: (status: PgNotificationConnectionStatus) => void
-    ): (() => void) => {
-      const handler = (_: unknown, status: PgNotificationConnectionStatus): void =>
-        callback(status)
+    onStatus: (callback: (status: PgNotificationConnectionStatus) => void): (() => void) => {
+      const handler = (_: unknown, status: PgNotificationConnectionStatus): void => callback(status)
       ipcRenderer.on('pg-notify:status', handler)
       return () => ipcRenderer.removeListener('pg-notify:status', handler)
     },
