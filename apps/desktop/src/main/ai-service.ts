@@ -9,6 +9,9 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
+import { createDeepSeek } from '@ai-sdk/deepseek'
+import { createMistral } from '@ai-sdk/mistral'
+import { createXai } from '@ai-sdk/xai'
 import { generateObject, generateText } from 'ai'
 import { z } from 'zod'
 import type {
@@ -323,6 +326,39 @@ function getModel(config: AIConfig) {
         baseURL: config.baseUrl
       })
       return groq(config.model)
+    }
+
+    case 'deepseek': {
+      const deepseek = createDeepSeek({
+        apiKey: config.apiKey,
+        baseURL: config.baseUrl
+      })
+      return deepseek(config.model)
+    }
+
+    case 'mistral': {
+      const mistral = createMistral({
+        apiKey: config.apiKey,
+        baseURL: config.baseUrl
+      })
+      return mistral(config.model)
+    }
+
+    case 'xai': {
+      const xai = createXai({
+        apiKey: config.apiKey,
+        baseURL: config.baseUrl
+      })
+      return xai(config.model)
+    }
+
+    case 'glm': {
+      // GLM (Zhipu AI) uses OpenAI-compatible API
+      const glm = createOpenAI({
+        apiKey: config.apiKey,
+        baseURL: config.baseUrl || 'https://open.bigmodel.cn/api/paas/v4'
+      })
+      return glm(config.model)
     }
 
     case 'ollama': {
