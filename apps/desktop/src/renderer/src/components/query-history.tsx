@@ -1,12 +1,11 @@
 import { useState, useMemo } from 'react'
-import { ChevronRight, Clock, Copy, MoreHorizontal, Play, Trash2, Search, X } from 'lucide-react'
+import { ChevronRight, Clock, Copy, MoreHorizontal, Play, Trash2 } from 'lucide-react'
 
-import { Badge, Input, Collapsible, CollapsibleContent, CollapsibleTrigger, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, SidebarGroup, SidebarGroupAction, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuAction, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@data-peek/ui'
+import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, SidebarGroup, SidebarGroupAction, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuAction, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@data-peek/ui'
 
 import { useQueryStore, useConnectionStore, useTabStore } from '@/stores'
 import { QueryHistoryDialog } from './query-history-dialog'
 import {
-  filterHistory,
   formatRelativeTime,
   truncateQuery,
   getQueryType,
@@ -25,27 +24,14 @@ export function QueryHistory() {
   const createQueryTab = useTabStore((s) => s.createQueryTab)
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
 
   const filteredHistory = useMemo(() => {
-    const connectionFiltered = activeConnectionId
+    return activeConnectionId
       ? history.filter((h) => h.connectionId === activeConnectionId || !h.connectionId)
       : history
+  }, [history, activeConnectionId])
 
-    if (!searchQuery.trim()) {
-      return connectionFiltered
-    }
-
-    return filterHistory(connectionFiltered, {
-      searchQuery,
-      filterStatus: 'all',
-      filterType: 'all',
-      connectionId: null
-    })
-  }, [history, activeConnectionId, searchQuery])
-
-  const displayLimit = searchQuery.trim() ? 20 : 10
-  const displayedHistory = filteredHistory.slice(0, displayLimit)
+  const displayedHistory = filteredHistory.slice(0, 10)
 
   const handleQueryClick = (query: string) => {
     const activeTab = getActiveTab()
@@ -87,35 +73,10 @@ export function QueryHistory() {
         </SidebarGroupLabel>
         <CollapsibleContent>
           <SidebarGroupContent>
-            <div className="px-2 pb-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search history..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-7 pl-7 pr-7 text-xs"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 size-4 flex items-center justify-center text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="size-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
             <SidebarMenu>
               {displayedHistory.length === 0 ? (
                 <div className="px-2 py-4 text-xs text-muted-foreground text-center">
-                  {searchQuery
-                    ? 'No matching queries'
-                    : activeConnectionId
-                      ? 'No queries yet'
-                      : 'Select a connection'}
+                  {activeConnectionId ? 'No queries yet' : 'Select a connection'}
                 </div>
               ) : (
                 displayedHistory.map((item) => {
@@ -201,7 +162,7 @@ export function QueryHistory() {
                   )
                 })
               )}
-              {filteredHistory.length > displayLimit && (
+              {filteredHistory.length > 10 && (
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="text-sidebar-foreground/70"

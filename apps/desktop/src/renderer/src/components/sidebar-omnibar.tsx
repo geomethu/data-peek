@@ -339,7 +339,7 @@ export function SidebarOmnibar() {
         </div>
 
         <div
-          className="overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)]"
+          className="overflow-hidden transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
           style={{
             display: 'grid',
             gridTemplateRows: isActive && query.length > 0 ? '1fr' : '0fr'

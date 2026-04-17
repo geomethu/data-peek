@@ -9,7 +9,7 @@ import {
   Database as SchemaIcon,
   Loader2,
   XCircle,
-  Search,
+
   X,
   Network,
   Plus,
@@ -41,7 +41,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-  Input,
+
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -529,8 +529,6 @@ export function SchemaExplorer() {
   )
   const [expandedTables, setExpandedTables] = React.useState<Set<string>>(new Set())
   const [expandedRoutines, setExpandedRoutines] = React.useState<Set<string>>(new Set())
-  const [searchQuery, setSearchQuery] = React.useState('')
-
   // Only animate stagger on schema data changes, not on every re-render
   const animatedSchemasRef = React.useRef<typeof schemas>(null)
   const shouldAnimateStagger = animatedSchemasRef.current !== schemas
@@ -550,45 +548,23 @@ export function SchemaExplorer() {
 
   const createQueryTab = useTabStore((s) => s.createQueryTab)
 
-  // Filter schemas and tables/routines based on search query, filter toggles, and focused schema
   const filteredSchemas = React.useMemo(() => {
-    const query = searchQuery.toLowerCase().trim()
-
     return schemas
       .filter((schema) => {
-        // If a schema is focused, only show that schema
         if (focusedSchema && schema.name !== focusedSchema) return false
         return true
       })
       .map((schema) => {
-        // Filter tables based on type and search
         const filteredTables = schema.tables.filter((table) => {
-          // Type filter
           if (table.type === 'table' && !showTables) return false
           if (table.type === 'view' && !showViews) return false
           if (table.type === 'materialized_view' && !showMaterializedViews) return false
-          // Search filter - match table name or column names
-          if (
-            query &&
-            !table.name.toLowerCase().includes(query) &&
-            !table.columns.some((c) => c.name.toLowerCase().includes(query))
-          )
-            return false
           return true
         })
 
-        // Filter routines based on type and search
         const filteredRoutines = schema.routines?.filter((routine) => {
-          // Type filter
           if (routine.type === 'function' && !showFunctions) return false
           if (routine.type === 'procedure' && !showProcedures) return false
-          // Search filter - match routine name or parameter names
-          if (
-            query &&
-            !routine.name.toLowerCase().includes(query) &&
-            !routine.parameters.some((p) => p.name.toLowerCase().includes(query))
-          )
-            return false
           return true
         })
 
@@ -601,7 +577,6 @@ export function SchemaExplorer() {
       .filter((schema) => schema.tables.length > 0 || (schema.routines?.length ?? 0) > 0)
   }, [
     schemas,
-    searchQuery,
     showTables,
     showViews,
     showMaterializedViews,
@@ -609,13 +584,6 @@ export function SchemaExplorer() {
     showProcedures,
     focusedSchema
   ])
-
-  // Auto-expand schemas when searching
-  React.useEffect(() => {
-    if (searchQuery.trim()) {
-      setExpandedSchemas(new Set(filteredSchemas.map((s) => s.name)))
-    }
-  }, [searchQuery, filteredSchemas])
 
   // Update expanded schemas when schemas change
   React.useEffect(() => {
@@ -1081,35 +1049,10 @@ export function SchemaExplorer() {
             </div>
           </div>
         )}
-        {/* Search Input */}
-        <div className="px-2 pb-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search tables, columns, routines..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-7 pl-7 pr-7 text-xs"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-0.5 top-1/2 -translate-y-1/2 size-6 hover:bg-transparent"
-                onClick={() => setSearchQuery('')}
-              >
-                <X className="size-3.5 text-muted-foreground" />
-              </Button>
-            )}
-          </div>
-        </div>
         <SidebarMenu>
           {filteredSchemas.length === 0 ? (
             <div className="px-2 py-4 text-xs text-muted-foreground text-center">
-              {searchQuery
-                ? 'No tables, columns, or routines match your search'
-                : 'No schemas found'}
+              No schemas found
             </div>
           ) : (
             filteredSchemas.map((schema) => (
